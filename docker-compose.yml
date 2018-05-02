@@ -1,0 +1,61 @@
+version: '3'
+
+services:
+  # web server
+  nginx:
+    image: nginx:latest
+    depends_on:
+      - php_fpm
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # app
+      - ./www:/usr/share/nginx/html
+      # nginx configs
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d/:/etc/nginx/conf.d/:ro
+      # certificates
+      - ./nginx/ca/server.crt/:/etc/nginx/server.crt:ro
+      - ./nginx/ca/server.key/:/etc/nginx/server.key:ro
+    restart: always
+    networks:
+      - frontend
+    container_name: nginx
+
+  # php-fpm
+  php_fpm:
+    depends_on:
+      - mysql
+    build: ./php-fpm
+    ports:
+      - "9000"
+    volumes:
+      - ./www:/usr/share/nginx/html
+      # Your php.ini
+      - ./php-fpm/php.ini-production:/usr/local/etc/php/php.ini:ro
+    restart: always
+    networks:
+        - frontend
+        - backend
+    container_name: php_fpm
+
+  # database
+  mysql:
+    image: mysql:5.7.22
+    ports:
+      # Allow client to access 3306
+      - "3306:3306"
+    volumes:
+      # NOTE: your data will be stored in ./mysql
+      - ./mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+    networks:
+        - backend
+    restart: always
+    container_name: mysql
+
+networks:
+  frontend:
+  backend:
